@@ -1,16 +1,16 @@
 import { ApplicationCommandType, TextChannel } from 'discord.js'
 
-import { Environment } from '../../config.js'
-import { isUniqueConstraintViolation, prisma } from '../../prisma.js'
-import { CommandHandlerConfig } from '../../types/CommandHandlerConfig.js'
+import { Environment } from '@/config'
+import { isUniqueConstraintViolation, prisma } from '@/prisma'
+import { defineCommandHandler } from '@/types/defineCommandHandler'
 
-export default {
+export default defineCommandHandler({
   data: {
     name: 'Report to moderator',
     type: ApplicationCommandType.Message,
   },
   ephemeral: true,
-  execute: async (client, interaction) => {
+  execute: async (botContext, interaction) => {
     if (!interaction.guild || !interaction.isContextMenuCommand()) return
     const message = await interaction.channel?.messages.fetch(
       interaction.targetId,
@@ -37,7 +37,7 @@ export default {
             {
               title: 'Error',
               description: 'You have already reported this message',
-              color: 0xff0000,
+              color: 0xff_00_00,
             },
           ],
         })
@@ -68,6 +68,7 @@ export default {
       })
 
     // Send the link to the message into the mod channel
+    const { client } = botContext
     const channel = client.channels.cache.get(Environment.MOD_CHANNEL_ID)
     if (!(channel instanceof TextChannel)) return
     await channel.send(
@@ -84,9 +85,9 @@ export default {
         {
           title: 'Thanks!',
           description: 'Report sent to moderators',
-          color: 0x00ff00,
+          color: 0x00_ff_00,
         },
       ],
     })
   },
-} satisfies CommandHandlerConfig
+})

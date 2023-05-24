@@ -4,12 +4,15 @@ import {
   ChannelType,
   ComponentType,
   DiscordAPIError,
+  GuildTextBasedChannelTypes,
   PermissionsBitField,
+  TextChannel,
 } from 'discord.js'
 
-import { CommandHandlerConfig } from '../../types/CommandHandlerConfig.js'
+import { defineCommandHandler } from '@/types/defineCommandHandler'
+import { isInArray } from '@/utils/typeGuards'
 
-export default {
+export default defineCommandHandler({
   data: {
     name: 'Prune messages',
     type: ApplicationCommandType.Message,
@@ -17,7 +20,7 @@ export default {
     dmPermission: false,
   },
   ephemeral: true,
-  execute: async (client, interaction) => {
+  execute: async (botContext, interaction) => {
     if (!interaction.guild || !interaction.isContextMenuCommand()) return
 
     // Fetch reference message by target id
@@ -53,8 +56,9 @@ export default {
       // Await button interaction for confirmation
       const buttonInteraction =
         await interaction.channel?.awaitMessageComponent({
-          filter: (i) => i.customId === 'yes' || i.customId === 'no',
-          time: 10000, // Adjust timeout as needed
+          filter: (index) =>
+            index.customId === 'yes' || index.customId === 'no',
+          time: 10_000, // Adjust timeout as needed
         })
       if (buttonInteraction?.customId === 'no') {
         // Reply about the cancel action
@@ -64,7 +68,7 @@ export default {
         })
         return
       }
-    } catch (err) {
+    } catch {
       await interaction.editReply({
         content: 'Confirmation not received within 10 seconds, cancelling',
         components: [],
@@ -72,42 +76,69 @@ export default {
       return
     }
 
+    //Discord expects bot to acknowledge the interaction within 3 seconds so reply something first
+    await interaction.editReply({
+      content: 'Processing... Please wait a moment.',
+      components: [],
+    })
+
     // Delete message in all channel
-    let numDeleted = 0
+    let numberDeleted = 0
+    const { client } = botContext
+
+    const selectedChannel: GuildTextBasedChannelTypes[] = [
+      ChannelType.GuildText,
+      ChannelType.GuildVoice,
+      ChannelType.GuildStageVoice,
+      ChannelType.PublicThread,
+    ]
+
     for (const [channelId, channel] of client.channels.cache) {
-      if (channel.type === ChannelType.GuildText) {
-        const messages = await channel.messages.fetch()
-        const userMessages = messages.filter(
-          (msg) => msg.author.id === message?.author.id,
+      // Check if the channel type is in the supported text channel array
+      if (isInArray(channel.type, selectedChannel)) {
+        //supportedTextChannel only contains TextChannel,we can cast channel to TextChannel without any issues.
+        const messages = await (channel as TextChannel).messages.fetch()
+        let userMessages = messages.filter(
+          (message_) => message_.author.id === message?.author.id,
+        )
+        //Filter messages within 2 weeks and delete it all
+        const duration =
+          Date.now() - (14 * 24 * 60 * 60 * 1000 - 60 * 60 * 1000) // reduce by 1 hour
+        userMessages = userMessages.filter(
+          (message_) => message_.createdTimestamp > duration,
         )
 
         if (userMessages.size > 0) {
           try {
-            await channel.bulkDelete(userMessages)
+            await (channel as TextChannel).bulkDelete(userMessages)
             console.info(
-              `Deleted ${userMessages.size} messages from ${interaction.targetId} in channel ${channel.name} (${channelId}).`,
+              `Deleted ${userMessages.size} messages from ${
+                interaction.targetId
+              } in channel ${(channel as TextChannel).name} (${channelId}).`,
             )
-            numDeleted += userMessages.size
+            numberDeleted += userMessages.size
           } catch (error) {
-            // Reply about the error
-            await interaction.editReply({
-              content: `Error deleting messages: ${
-                (error as DiscordAPIError).message
-              }`,
-              components: [],
-            })
             console.error('Error deleting messages:', error)
-            if ((error as DiscordAPIError).status === 404) {
-              return
+            if (error instanceof DiscordAPIError) {
+              // Reply about the error
+              //for error 400 : cant occur because the time period has been set for how many days to delete
+              await interaction.editReply({
+                content: `Error deleting messages: ${error.message}`,
+                components: [],
+              })
+              if (error.status === 404) {
+                return
+              }
             }
           }
         }
       }
     }
     // Tell the user that the messages were successfully pruned
+    console.info(`Successfully pruned ${numberDeleted} messages.`)
     await interaction.editReply({
-      content: `Successfully prune messages. Number of messages deleted: ${numDeleted}`,
+      content: `Successfully prune messages. Number of messages deleted: ${numberDeleted}`,
       components: [],
     })
   },
-} satisfies CommandHandlerConfig
+})

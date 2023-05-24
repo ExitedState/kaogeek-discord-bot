@@ -1,23 +1,17 @@
-import { ApplicationCommandType } from 'discord.js'
+import { ApplicationCommandType, time } from 'discord.js'
 
-import { CommandHandlerConfig } from '../../types/CommandHandlerConfig.js'
+import { defineCommandHandler } from '@/types/defineCommandHandler'
 
-export default {
+export default defineCommandHandler({
   data: {
-    name: 'user',
+    name: 'Show user info',
     type: ApplicationCommandType.User,
   },
   ephemeral: true,
-  execute: async (client, interaction) => {
+  execute: async (botContext, interaction) => {
     if (!interaction.guild || !interaction.isContextMenuCommand()) return
     const member = interaction.guild.members.cache.get(interaction.targetId)
     if (!member) return
-    const joinedAtUnixSecond = Math.round(
-      (member.joinedAt?.getTime() ?? 0) / 1000,
-    )
-    const createdAtUnixSecond = Math.round(
-      member.user.createdAt.getTime() / 1000,
-    )
     await interaction.editReply({
       embeds: [
         {
@@ -26,12 +20,12 @@ export default {
           fields: [
             {
               name: 'Joined',
-              value: `<t:${joinedAtUnixSecond}>`,
+              value: member.joinedAt ? time(member.joinedAt) : 'N/A',
               inline: true,
             },
             {
               name: 'Created',
-              value: `<t:${createdAtUnixSecond}>`,
+              value: time(member.user.createdAt),
               inline: true,
             },
           ],
@@ -39,4 +33,4 @@ export default {
       ],
     })
   },
-} satisfies CommandHandlerConfig
+})

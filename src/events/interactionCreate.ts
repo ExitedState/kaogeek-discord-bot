@@ -1,29 +1,33 @@
 import { Events } from 'discord.js'
 
-import { EventHandlerConfig } from '../types/EventHandlerConfig.js'
+import { defineEventHandler } from '@/types/defineEventHandler'
 
-export default {
+export default defineEventHandler({
   eventName: Events.InteractionCreate,
   once: false,
-  execute: async (client, interaction) => {
+  execute: async (botContext, interaction) => {
     if (interaction.isCommand()) {
       const commandName = interaction.commandName
-      const command = client.commands.get(commandName)
+      const { commands } = botContext
+      const command = commands.get(commandName)
       if (!command) return
-      let bypass = true
-      await interaction
-        .deferReply({ ephemeral: command.ephemeral })
-        .catch(() => (bypass = false))
-      if (!bypass) return
+      try {
+        if (!command.disableAutoDeferReply) {
+          await interaction.deferReply({ ephemeral: command.ephemeral })
+        }
+      } catch (error) {
+        console.error(`[Command: ${commandName}] Unable to defer reply:`, error)
+        return
+      }
       try {
         console.log(
-          `[Command] ${interaction.user.tag} (${interaction.user.id}) > ${interaction.commandName}`,
+          `[Command: ${commandName}] Invoked by ${interaction.user.tag} (${interaction.user.id})`,
         )
-        await command.execute(client, interaction)
+        await command.execute(botContext, interaction)
       } catch (error) {
-        console.error(error)
+        console.error(`[Command: ${commandName}] Command execute error:`, error)
         await interaction.deleteReply()
       }
     }
   },
-} satisfies EventHandlerConfig<Events.InteractionCreate>
+})

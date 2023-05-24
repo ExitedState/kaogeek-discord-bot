@@ -1,19 +1,24 @@
 import { Events } from 'discord.js'
 
-import { EventHandlerConfig } from '../types/EventHandlerConfig.js'
-import isOnlyEmoji from '../utils/isOnlyEmoji.js'
+import { defineEventHandler } from '@/types/defineEventHandler'
+import isOnlyEmoji from '@/utils/isOnlyEmoji'
 
-export default {
+export default defineEventHandler({
   eventName: Events.MessageCreate,
   once: false,
-  execute: async (client, message) => {
+  execute: async ({ runtimeConfiguration }, message) => {
     // if has only emoji -> delete message
     if (isOnlyEmoji(message.content)) {
       try {
-        await message.delete()
-      } catch (err) {
-        console.error(err)
+        console.info(
+          `[preventEmojiSpam] Message with only emoji: ${message.id} by ${message.author}`,
+        )
+        if (runtimeConfiguration.data.preventEmojiSpam.enabled) {
+          await message.delete()
+        }
+      } catch (error) {
+        console.error(error)
       }
     }
   },
-} satisfies EventHandlerConfig<Events.MessageCreate>
+})

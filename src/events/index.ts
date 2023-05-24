@@ -1,6 +1,17 @@
-import interactionCreate from './interactionCreate.js'
-import linkChecker from './linkChecker.js'
-import preventEmojiSpam from './preventEmojiSpam.js'
-import ready from './ready.js'
+import { AnyEventHandlerConfig } from '@/types/EventHandlerConfig'
 
-export default [interactionCreate, preventEmojiSpam, ready, linkChecker]
+import guildMemberAdd from './guildMemberAdd'
+import guildMemberRemove from './guildMemberRemove'
+import guildMemberUpdate from './guildMemberUpdate'
+import interactionCreate from './interactionCreate'
+import preventEmojiSpam from './preventEmojiSpam'
+import ready from './ready'
+
+export default [
+  guildMemberAdd,
+  guildMemberRemove,
+  guildMemberUpdate,
+  interactionCreate,
+  preventEmojiSpam,
+  ready,
+] satisfies AnyEventHandlerConfig[]
