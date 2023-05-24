@@ -1,7 +1,7 @@
 const urlRegex =
-  /(?:(?:https?|ftp):\/\/|\b(?:[a-z\d]+\.))(?:(?:[^\s()<>]+|\((?:[^\s()<>]+|(?:\([^\s()<>]+\)))?\))+(?:\((?:[^\s()<>]+|(?:\(?:[^\s()<>]+\)))?\)|[^\s`!()[\]{};:'".,<>?«»“”‘’]))?/gi
+  /(?:(?:https?|ftp):\/\/|\b[\da-z]+\.)(?:(?:[^\s()<>]+|\((?:[^\s()<>]+|(?:\([^\s()<>]+\)))?\))+(?:\((?:[^\s()<>]+|(?:\(?:[^\s()<>]+\)))?\)|[^\s!"'(),.:;<>?[\]`{}«»‘’“”]))?/gi
 
-export default (str: string): RegExpMatchArray | null => {
+export default (string_: string): RegExpMatchArray | null => {
   // console.log(str.match(urlRegex));
-  return str.match(urlRegex)
+  return string_.match(urlRegex)
 }

@@ -21,7 +21,7 @@ export default {
             {
               title: 'Unsafe Link Detected',
               description: `Your message in ${message.guild?.name} was removed because it contained a potentially unsafe link: ${url}`,
-              color: 0x00ff00,
+              color: 0x00_ff_00,
             },
           ],
         })
